@@ -6,6 +6,7 @@ from defusedxml.ElementTree import fromstring
 import sys
 from urllib.parse import urljoin
 
+
 # Function to download the content of a file given its URL
 def download_file(session, url):
     print(url)
@@ -13,16 +14,18 @@ def download_file(session, url):
     response.raise_for_status()
     return response.content
 
+
 # Function to parse XML content
 def parse_xml(xml_content):
     return fromstring(xml_content)
 
+
 # Main function to download the EPUB
 def download_epub(base_url, session, progress):
     namespaces = {
-        'c': 'urn:oasis:names:tc:opendocument:xmlns:container',
-        'opf': 'http://www.idpf.org/2007/opf',
-        'dc': 'http://purl.org/dc/elements/1.1/'
+        "c": "urn:oasis:names:tc:opendocument:xmlns:container",
+        "opf": "http://www.idpf.org/2007/opf",
+        "dc": "http://purl.org/dc/elements/1.1/",
     }
 
     progress(0)
@@ -43,10 +46,10 @@ def download_epub(base_url, session, progress):
     progress(2)
     rootfile_url = urljoin(base_url, rootfile_path)
     rootfile_content = download_file(session, rootfile_url)
-    
+
     # Step 4: Parse the rootfile (content.opf) and extract the manifest and title
     rootfile_xml = parse_xml(rootfile_content)
-    
+
     # Extract title from the metadata
     title = rootfile_xml.find("opf:metadata/dc:title", namespaces).text
 
@@ -55,7 +58,7 @@ def download_epub(base_url, session, progress):
 
     # Step 5: Download all files mentioned in the manifest
     manifest = rootfile_xml.findall("opf:manifest/opf:item", namespaces)
-    
+
     for idx, item in enumerate(manifest):
         progress(int(3 + 90 * (idx / len(manifest))))
         href = item.attrib["href"]
@@ -66,11 +69,11 @@ def download_epub(base_url, session, progress):
 
     # Add the rootfile (content.opf) and container.xml to the epub files
     epub_files[rootfile_path] = rootfile_content
-    epub_files['META-INF/container.xml'] = container_xml_content
+    epub_files["META-INF/container.xml"] = container_xml_content
 
     # Step 6: Zip all downloaded files into title.epub
     epub_filename = f"{title}.epub"
-    with zipfile.ZipFile(epub_filename, 'w', zipfile.ZIP_DEFLATED) as epub_zip:
+    with zipfile.ZipFile(epub_filename, "w", zipfile.ZIP_DEFLATED) as epub_zip:
         # Add the mimetype file first (this is a convention for EPUB)
         epub_zip.writestr("mimetype", mimetype, compress_type=zipfile.ZIP_STORED)
 
@@ -80,6 +83,7 @@ def download_epub(base_url, session, progress):
 
     progress(100)
     print(f"EPUB '{epub_filename}' created successfully!")
+
 
 # Example usage:
 if __name__ == "__main__":
