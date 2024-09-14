@@ -60,8 +60,9 @@ def download_epub(base_url, session, progress):
         progress(int(3 + 90 * (idx / len(manifest))))
         href = item.attrib["href"]
         file_url = urljoin(rootfile_url, href)
+        file_path = urljoin(rootfile_path, href)
         file_content = download_file(session, file_url)
-        epub_files[href] = file_content
+        epub_files[file_path] = file_content
 
     # Add the rootfile (content.opf) and container.xml to the epub files
     epub_files[rootfile_path] = rootfile_content
@@ -71,7 +72,7 @@ def download_epub(base_url, session, progress):
     epub_filename = f"{title}.epub"
     with zipfile.ZipFile(epub_filename, 'w', zipfile.ZIP_DEFLATED) as epub_zip:
         # Add the mimetype file first (this is a convention for EPUB)
-        epub_zip.writestr('mimetype', mimetype)
+        epub_zip.writestr("mimetype", mimetype, compress_type=zipfile.ZIP_STORED)
 
         # Write all other files
         for file_path, file_content in epub_files.items():
