@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unzipped_epub_downloader"
-version = "0.1.0"
+version = "0.1.1"
+license = { text = "EUPL-1.2" }
 description = "A Python tool to download an unzipped EPUB from a website and package it into a .epub file."
 readme = "README.md"
 keywords = ["epub", "downloader", "zip", "requests", "epub+zip"]
@@ -16,12 +17,16 @@ requires-python = ">=3.7"
 dependencies = [
     "requests>=2.25.0",
     "defusedxml>=0.7.1",
-    "tqdm>=4.66.5"
+    "tqdm>=4.66.5",
+    "click>=8.1.0"
 ]
 
 [project.urls]
 homepage = "https://github.com/carobo/unzipped_epub_downloader"
 repository = "https://github.com/carobo/unzipped_epub_downloader"
+
+[project.scripts]
+unzipped_epub_downloader = "unzipped_epub_downloader.downloader:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
