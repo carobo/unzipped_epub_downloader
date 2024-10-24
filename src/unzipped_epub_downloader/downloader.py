@@ -22,7 +22,7 @@ def parse_xml(xml_content):
 
 
 # Main function to download the EPUB
-def download_epub(base_url, session):
+def download_epub(base_url, epub_filename, session):
     namespaces = {
         "c": "urn:oasis:names:tc:opendocument:xmlns:container",
         "opf": "http://www.idpf.org/2007/opf",
@@ -39,30 +39,16 @@ def download_epub(base_url, session):
 
     mimetype = download_file(session, urljoin(base_url, "mimetype"))
 
-    # Step 1: Retrieve META-INF/container.xml
     container_url = urljoin(base_url, "META-INF/container.xml")
     container_xml_content = download_file(session, container_url)
 
-    # Step 2: Parse META-INF/container.xml and get rootfile path
     container_xml = parse_xml(container_xml_content)
-    rootfile_element = container_xml.find("c:rootfiles/c:rootfile", namespaces)
-    rootfile_path = rootfile_element.attrib["full-path"]
-    rootfile_mime = rootfile_element.attrib["media-type"]
+    rootfile_elements = container_xml.findall("c:rootfiles/c:rootfile", namespaces)
+    rootfile_paths = [r.attrib["full-path"] for r in rootfile_elements]
 
-    # Step 3: Download the rootfile (typically content.opf)
-    rootfile_url = urljoin(base_url, rootfile_path)
-    rootfile_content = download_file(session, rootfile_url)
-
-    # Step 4: Parse the rootfile (content.opf) and extract the manifest and title
-    rootfile_xml = parse_xml(rootfile_content)
-
-    # Extract title from the metadata
-    title = rootfile_xml.find("opf:metadata/dc:title", namespaces).text
-
-    epub_filename = f"{title}.epub"
     with zipfile.ZipFile(epub_filename, "w", zipfile.ZIP_DEFLATED) as epub_zip:
         epub_zip.writestr("mimetype", mimetype, compress_type=zipfile.ZIP_STORED)
-        epub_zip.writestr(rootfile_path, rootfile_content)
+
         epub_zip.writestr("META-INF/container.xml", container_xml_content)
 
         for meta_file in optional_meta_files:
@@ -72,21 +58,20 @@ def download_epub(base_url, session):
             except requests.exceptions.HTTPError:
                 pass
 
-        # Step 5: Download all files mentioned in the manifest
-        manifest = rootfile_xml.findall("opf:manifest/opf:item", namespaces)
+        for rootfile_path in rootfile_paths:
+            rootfile_url = urljoin(base_url, rootfile_path)
+            rootfile_content = download_file(session, rootfile_url)
+            rootfile_xml = parse_xml(rootfile_content)
+            epub_zip.writestr(rootfile_path, rootfile_content)
 
-        for item in tqdm(manifest):
-            href = item.attrib["href"]
-            file_url = urljoin(rootfile_url, href)
-            file_path = urljoin(rootfile_path, href)
-            file_content = download_file(session, file_url)
-            epub_zip.writestr(file_path, file_content)
+            manifest = rootfile_xml.findall("opf:manifest/opf:item", namespaces)
 
-    print(f"EPUB '{epub_filename}' created successfully!")
-
-
-import click
-import requests
+            for item in tqdm(manifest):
+                href = item.attrib["href"]
+                file_url = urljoin(rootfile_url, href)
+                file_path = urljoin(rootfile_path, href)
+                file_content = download_file(session, file_url)
+                epub_zip.writestr(file_path, file_content)
 
 
 # Utility function to parse auth in "username:password" format
@@ -139,6 +124,8 @@ def parse_params(ctx, param, value):
 
 
 @click.command()
+@click.argument("base_url")
+@click.argument("output_file")
 @click.option(
     "--auth",
     callback=parse_auth,
@@ -173,9 +160,9 @@ def parse_params(ctx, param, value):
 )
 @click.option("--proxy", help="Proxy to use, in format server:port.")
 @click.option("--user-agent", help="User-Agent header to send")
-@click.argument("base_url")
 def main(
     base_url,
+    output_file,
     auth,
     cert,
     cookie,
@@ -214,7 +201,7 @@ def main(
 
     session.verify = not no_verify
 
-    download_epub(base_url, session)
+    download_epub(base_url, output_file, session)
 
 
 if __name__ == "__main__":
