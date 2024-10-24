@@ -29,6 +29,14 @@ def download_epub(base_url, session):
         "dc": "http://purl.org/dc/elements/1.1/",
     }
 
+    optional_meta_files = [
+        "META-INF/encryption.xml",
+        "META-INF/manifest.xml",
+        "META-INF/metadata.xml",
+        "META-INF/rights.xml",
+        "META-INF/signatures.xml",
+    ]
+
     mimetype = download_file(session, urljoin(base_url, "mimetype"))
 
     # Step 1: Retrieve META-INF/container.xml
@@ -56,6 +64,13 @@ def download_epub(base_url, session):
         epub_zip.writestr("mimetype", mimetype, compress_type=zipfile.ZIP_STORED)
         epub_zip.writestr(rootfile_path, rootfile_content)
         epub_zip.writestr("META-INF/container.xml", container_xml_content)
+
+        for meta_file in optional_meta_files:
+            try:
+                content = download_file(session, urljoin(base_url, meta_file))
+                epub_zip.writestr(meta_file, content)
+            except requests.exceptions.HTTPError:
+                pass
 
         # Step 5: Download all files mentioned in the manifest
         manifest = rootfile_xml.findall("opf:manifest/opf:item", namespaces)
