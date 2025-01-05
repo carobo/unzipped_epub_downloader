@@ -11,7 +11,11 @@ from urllib.parse import urljoin
 
 # Function to download the content of a file given its URL
 def download_file(session, url):
-    response = session.get(url)
+    try:
+        response = session.get(url, timeout=17)
+    except requests.exceptions.ConnectionError:
+        response = session.get(url, timeout=29)
+
     response.raise_for_status()
     return response.content
 
