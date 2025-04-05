@@ -29,4 +29,4 @@ repository = "https://github.com/carobo/unzipped_epub_downloader"
 unzipped_epub_downloader = "unzipped_epub_downloader.downloader:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["python"]
